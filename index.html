@@ -1,456 +1,606 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-<meta charset="UTF-8">
-<title>Dashboard Kinerja Divisi Pengembangan Usaha</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
-<style>
-  :root{
-    --blue: #0066B3;
-    --blue-dark: #004A85;
-    --green: #2E7D32;
-    --gray-light: #F3F5F7;
-    --gray-dark: #4F5B67;
-    --yellow: #FFC107;
-    --red: #D32F2F;
-    --card-bg: #FFFFFF;
-    --border: #E4E8EC;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    font-family: "Segoe UI", Calibri, Arial, sans-serif;
-    background: var(--gray-light);
-    color: var(--gray-dark);
-  }
-  .wrap{max-width:1440px;margin:0 auto;padding:24px 28px 60px;}
+import React, { useState } from "react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  Legend as RLegend,
+} from "recharts";
+import { Trophy, Layers, Target, Wallet, Sparkles, CheckCircle2 } from "lucide-react";
 
-  /* HEADER */
-  header{
-    background: linear-gradient(120deg, var(--blue-dark), var(--blue));
-    border-radius:14px;
-    padding:26px 32px;
-    color:#fff;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    flex-wrap:wrap;
-    gap:16px;
-    box-shadow: 0 6px 18px rgba(0,74,133,0.25);
-    margin-bottom:22px;
-  }
-  header .title h1{margin:0;font-size:22px;font-weight:700;letter-spacing:.3px;}
-  header .title p{margin:4px 0 0;font-size:13px;opacity:.85;}
-  header .period{display:flex;align-items:center;gap:10px;}
-  header .period select, header .period input{
-    background:rgba(255,255,255,0.12);
-    border:1px solid rgba(255,255,255,0.4);
-    color:#fff;
-    border-radius:8px;
-    padding:8px 12px;
-    font-size:13px;
-    font-family:inherit;
-  }
-  header .period select option{color:#111;}
-  header .badge{
-    background:rgba(255,255,255,0.15);
-    border-radius:8px;
-    padding:8px 14px;
-    font-size:12px;
-    text-align:center;
-  }
-  header .badge b{display:block;font-size:20px;}
+const ink = "#1F2430";
+const inkSoft = "#6B7280";
+const border = "#E4E1D8";
 
-  /* SECTION LABEL */
-  .section-title{
-    font-size:14px;
-    font-weight:700;
-    color:var(--gray-dark);
-    text-transform:uppercase;
-    letter-spacing:.6px;
-    margin:26px 0 12px;
-    display:flex;
-    align-items:center;
-    gap:8px;
-  }
-  .section-title::before{
-    content:"";
-    width:4px;height:16px;
-    background:var(--blue);
-    border-radius:2px;
-    display:inline-block;
-  }
+/* ---------- Data riil: Kontrak Manajemen 2026, realisasi s.d. Juli 2026 ---------- */
 
-  /* KPI GRID */
-  .kpi-grid{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:14px;
-  }
-  @media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
-  .kpi-card{
-    background:var(--card-bg);
-    border:1px solid var(--border);
-    border-radius:12px;
-    padding:16px 16px 14px;
-    box-shadow:0 2px 6px rgba(20,30,40,0.05);
-    position:relative;
-    overflow:hidden;
-  }
-  .kpi-card .top{display:flex;align-items:flex-start;justify-content:space-between;}
-  .kpi-icon{
-    width:36px;height:36px;border-radius:9px;
-    background:var(--gray-light);
-    display:flex;align-items:center;justify-content:center;
-    font-size:18px;flex:none;
-  }
-  .kpi-card h3{
-    font-size:12.5px;font-weight:600;color:var(--gray-dark);
-    margin:10px 0 8px;line-height:1.35;min-height:34px;
-  }
-  .status-dot{width:11px;height:11px;border-radius:50%;margin-top:4px;flex:none;}
-  .dot-green{background:var(--green);}
-  .dot-yellow{background:var(--yellow);}
-  .dot-red{background:var(--red);}
-
-  .kpi-fields{display:flex;gap:8px;margin-bottom:10px;}
-  .field{flex:1;}
-  .field label{font-size:10px;color:#8b95a0;display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px;}
-  .field input{
-    width:100%;border:1px solid var(--border);border-radius:6px;
-    padding:6px 7px;font-size:12.5px;font-family:inherit;color:var(--gray-dark);
-    background:#FAFBFC;
-  }
-  .field input:focus{outline:2px solid var(--blue);outline-offset:1px;background:#fff;}
-
-  .achv-row{display:flex;align-items:center;justify-content:space-between;margin-top:6px;}
-  .achv-value{font-size:22px;font-weight:700;}
-  .achv-bar{
-    height:6px;border-radius:4px;background:var(--gray-light);overflow:hidden;margin-top:8px;
-  }
-  .achv-bar > div{height:100%;border-radius:4px;transition:width .3s;}
-
-  .sub-list{margin-top:8px;border-top:1px dashed var(--border);padding-top:8px;}
-  .sub-item{display:flex;gap:6px;align-items:center;margin-bottom:5px;}
-  .sub-item span{font-size:10.5px;flex:1;color:var(--gray-dark);}
-  .sub-item input{width:52px;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;font-family:inherit;}
-
-  /* CHART GRID */
-  .chart-grid{
-    display:grid;
-    grid-template-columns: 1.1fr 1fr;
-    gap:16px;
-  }
-  @media(max-width:1100px){.chart-grid{grid-template-columns:1fr;}}
-  .panel{
-    background:var(--card-bg);
-    border:1px solid var(--border);
-    border-radius:12px;
-    padding:18px 20px;
-    box-shadow:0 2px 6px rgba(20,30,40,0.05);
-  }
-  .panel h4{margin:0 0 4px;font-size:14px;color:var(--gray-dark);}
-  .panel .sub{font-size:11.5px;color:#8b95a0;margin-bottom:12px;}
-  .panel-wide{grid-column:1/-1;}
-
-  canvas{max-width:100%;}
-
-  /* ICO progress */
-  .stage{margin-bottom:14px;}
-  .stage-head{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;color:var(--gray-dark);}
-  .stage-track{position:relative;height:14px;background:var(--gray-light);border-radius:7px;overflow:hidden;}
-  .stage-target{position:absolute;top:0;bottom:0;background:#D8DEE4;border-radius:7px;}
-  .stage-real{position:absolute;top:0;bottom:0;background:var(--blue);border-radius:7px;transition:width .3s;}
-  .stage-inputs{display:flex;gap:6px;margin-top:5px;}
-  .stage-inputs input{width:60px;font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-family:inherit;}
-
-  /* Donut grid */
-  .donut-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
-  @media(max-width:1100px){.donut-grid{grid-template-columns:1fr;}}
-  .donut-legend{display:flex;flex-direction:column;gap:6px;margin-top:10px;font-size:11.5px;}
-  .donut-legend .li{display:flex;align-items:center;gap:6px;}
-  .donut-legend .sw{width:10px;height:10px;border-radius:3px;flex:none;}
-  .donut-legend input{width:56px;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;margin-left:auto;font-family:inherit;}
-
-  /* Summary table */
-  table{width:100%;border-collapse:collapse;font-size:12.5px;}
-  th{
-    text-align:left;background:var(--gray-light);color:var(--gray-dark);
-    font-weight:700;padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;
-  }
-  td{padding:9px 12px;border-bottom:1px solid var(--border);}
-  tr:last-child td{border-bottom:none;}
-  .status-chip{display:inline-flex;align-items:center;gap:6px;font-weight:600;}
-  .status-chip .dot{width:9px;height:9px;border-radius:50%;}
-
-  /* Footer gauge */
-  .footer-panel{
-    display:flex;align-items:center;gap:36px;flex-wrap:wrap;justify-content:center;
-    background:var(--card-bg);border:1px solid var(--border);border-radius:12px;
-    padding:22px 30px;box-shadow:0 2px 6px rgba(20,30,40,0.05);margin-top:16px;
-  }
-  .gauge-label{text-align:center;}
-  .gauge-label .big{font-size:34px;font-weight:800;color:var(--blue-dark);}
-  .gauge-label .small{font-size:12px;color:#8b95a0;text-transform:uppercase;letter-spacing:.5px;}
-  .legend-row{display:flex;gap:22px;flex-wrap:wrap;}
-  .legend-row .li{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--gray-dark);}
-  .legend-row .sw{width:12px;height:12px;border-radius:3px;}
-
-  .footnote{text-align:center;font-size:11px;color:#9aa4ad;margin-top:26px;}
-</style>
-</head>
-<body>
-<div class="wrap">
-
-  <header>
-    <div class="title">
-      <h1>DASHBOARD KINERJA DIVISI PENGEMBANGAN USAHA</h1>
-      <p>Monitoring Target, Realisasi dan Achievement (%)</p>
-    </div>
-    <div class="period">
-      <select id="periodType">
-        <option>Bulanan</option>
-        <option>Triwulan</option>
-        <option>Semester</option>
-        <option selected>Kumulatif</option>
-      </select>
-      <input id="periodLabel" type="text" value="s.d. Juni 2026" style="width:150px;">
-    </div>
-  </header>
-
-  <div class="section-title">Ringkasan Indikator Kinerja Utama</div>
-  <div class="kpi-grid" id="kpiGrid"></div>
-
-  <div class="section-title">Realisasi Pencapaian Kinerja</div>
-  <div class="sub" style="margin:-6px 0 14px;font-size:12px;color:#8b95a0;">Target vs Realisasi bulanan Januari–Juni 2026 untuk setiap indikator kinerja (sumber: file Excel yang diunggah)</div>
-  <div class="chart-grid" id="trendChartsGrid"></div>
-
-  <div class="section-title">Executive Summary</div>
-  <div class="panel">
-    <table>
-      <thead>
-        <tr><th>KPI</th><th>Target</th><th>Realisasi</th><th>Achievement</th><th>Status</th></tr>
-      </thead>
-      <tbody id="summaryBody"></tbody>
-    </table>
-  </div>
-
-</div>
-
-<script>
-const COLORS = { blue:'#0066B3', green:'#2E7D32', gray:'#D8DEE4', grayDark:'#4F5B67', yellow:'#FFC107', red:'#D32F2F' };
-
-function statusColor(pct){
-  if(pct >= 100) return COLORS.green;
-  if(pct >= 90) return COLORS.yellow;
-  return COLORS.red;
-}
-function statusDotClass(pct){
-  if(pct >= 100) return 'dot-green';
-  if(pct >= 90) return 'dot-yellow';
-  return 'dot-red';
-}
-function pct(target, real, polarity){
-  const t = parseFloat(target)||0, r = parseFloat(real)||0;
-  if(t === 0) return 0;
-  if(polarity === 'down'){
-    // Polaritas turun: realisasi lebih kecil dari target = pencapaian lebih besar.
-    // real = target -> 100%; real = 0 -> 200%; real = 2x target -> 0%.
-    let val = ((2*t - r) / t) * 100;
-    return Math.max(0, Math.round(val*10)/10);
-  }
-  return Math.round((r/t)*1000)/10;
-}
-
-// ---------- KPI DEFINITIONS ----------
-const kpis = [
-  {id:1, icon:'💰', name:'Pendapatan Service Fee (Rp Miliar)', mode:'target-real', target:295.55, real:332.11},
-  {id:2, icon:'📊', name:'Pengendalian Anggaran Operasi (% terhadap pagu)', mode:'target-real', realLabel:'Realisasi', polarity:'down', target:50, real:9.33},
-  {id:3, icon:'💡', name:'Pendapatan Inovatif (Rp Miliar)', mode:'target-real', target:2414.4, real:2972.04},
-  {id:4, icon:'⚡', name:'Efisiensi Pengelolaan Energi Primer (Rp Miliar)', mode:'target-real', target:19.5, real:23.35},
-  {id:5, icon:'⛏️', name:'Pasokan Batubara (Ribu MT)', mode:'subs', subs:[
-      {label:'Tambang Sendiri & Afiliasi', target:327.5, real:480.18},
-      {label:'Coal Blending Facility', target:270, real:290},
-      {label:'Intermediate Stockpile', target:780, real:842.04},
-  ]},
-  {id:6, icon:'💻', name:'Implementasi Platform ICO Tahap I (%)', mode:'target-progress', target:100, real:110},
-  {id:7, icon:'🏛️', name:'Milestone Kewajiban Tambang Milik Sendiri ke Negara (%)', mode:'target-progress', target:100, real:100},
-  {id:8, icon:'📄', name:'Pemenuhan Dokumen Penunjang Proses Bisnis (%)', mode:'target-real', target:100, real:100},
+const metricBlocks = [
+  { icon: Trophy, label: "Total nilai kinerja", value: "106,80", sub: "dari basis 100", color: "#5B3FA8" },
+  { icon: Layers, label: "Skor kategori KPI (A)", value: "43,50", sub: "bobot 40", color: "#7A3FA8" },
+  { icon: Target, label: "Skor performance (B)", value: "63,30", sub: "bobot 60", color: "#B23FA0" },
+  { icon: Wallet, label: "Pendapatan service fee", value: "Rp 398,56 M", sub: "capaian 105,0%", color: "#2FA097" },
+  { icon: Sparkles, label: "Pendapatan inovatif", value: "Rp 4.056,68 M", sub: "capaian 110,0%", color: "#2E8C7E" },
+  { icon: CheckCircle2, label: "Indikator capai target", value: "15 / 15", sub: "100% indikator", color: "#0F6E56" },
 ];
 
-// ---------- RENDER KPI CARDS ----------
-const kpiGrid = document.getElementById('kpiGrid');
+const serviceFee = [
+  { bulan: "Jan", target: 49.26, realisasi: 42.94 },
+  { bulan: "Feb", target: 98.52, realisasi: 94.68 },
+  { bulan: "Mar", target: 147.77, realisasi: 146.71 },
+  { bulan: "Apr", target: 197.03, realisasi: 202.49 },
+  { bulan: "Mei", target: 246.29, realisasi: 261.05 },
+  { bulan: "Jun", target: 295.55, realisasi: 332.11 },
+  { bulan: "Jul", target: 379.42, realisasi: 398.56 },
+];
 
-function renderKpiCards(){
-  kpiGrid.innerHTML = '';
-  kpis.forEach(k => {
-    const card = document.createElement('div');
-    card.className = 'kpi-card';
+const pendapatanInovatif = [
+  { bulan: "Jan", target: 190, realisasi: 192.31 },
+  { bulan: "Feb", target: 681.11, realisasi: 681.11 },
+  { bulan: "Mar", target: 1099.65, realisasi: 1099.65 },
+  { bulan: "Apr", target: 1712.92, realisasi: 1743.55 },
+  { bulan: "Mei", target: 2178.65, realisasi: 2557.76 },
+  { bulan: "Jun", target: 2414.4, realisasi: 2972.04 },
+  { bulan: "Jul", target: 3268, realisasi: 4056.68 },
+];
 
-    if(k.mode === 'subs'){
-      const avg = k.subs.reduce((s,x)=>s+pct(x.target,x.real),0) / k.subs.length;
-      card.innerHTML = `
-        <div class="top">
-          <div class="kpi-icon">${k.icon}</div>
-          <div class="status-dot ${statusDotClass(avg)}"></div>
-        </div>
-        <h3>${k.name}</h3>
-        <div class="achv-row">
-          <div class="achv-value" style="color:${statusColor(avg)}">${avg.toFixed(1)}%</div>
-          <span style="font-size:11px;color:#8b95a0;">Achievement Total</span>
-        </div>
-        <div class="achv-bar"><div style="width:${Math.min(avg,100)}%;background:${statusColor(avg)}"></div></div>
-        <div class="sub-list">
-          ${k.subs.map((s,i)=>`
-            <div class="sub-item">
-              <span>${s.label}</span>
-              <input type="number" data-kpi="${k.id}" data-sub="${i}" data-field="target" value="${s.target}" placeholder="Target">
-              <input type="number" data-kpi="${k.id}" data-sub="${i}" data-field="real" value="${s.real}" placeholder="Real.">
-            </div>`).join('')}
-        </div>
-      `;
-    } else {
-      const p = pct(k.target, k.real, k.polarity);
-      const realLabel = k.mode === 'target-progress' ? 'Progress' : (k.realLabel || 'Realisasi');
-      card.innerHTML = `
-        <div class="top">
-          <div class="kpi-icon">${k.icon}</div>
-          <div class="status-dot ${statusDotClass(p)}"></div>
-        </div>
-        <h3>${k.name}</h3>
-        <div class="kpi-fields">
-          <div class="field">
-            <label>Target</label>
-            <input type="number" data-kpi="${k.id}" data-field="target" value="${k.target}">
-          </div>
-          <div class="field">
-            <label>${realLabel}</label>
-            <input type="number" data-kpi="${k.id}" data-field="real" value="${k.real}">
-          </div>
-        </div>
-        <div class="achv-row">
-          <div class="achv-value" style="color:${statusColor(p)}">${p.toFixed(1)}%</div>
-        </div>
-        <div class="achv-bar"><div style="width:${Math.min(p,100)}%;background:${statusColor(p)}"></div></div>
-      `;
-    }
-    kpiGrid.appendChild(card);
-  });
+const efisiensiEnergi = [
+  { bulan: "Jan", target: 0.09, realisasi: 0.09 },
+  { bulan: "Feb", target: 6.42, realisasi: 9.83 },
+  { bulan: "Mar", target: 9.63, realisasi: 10.88 },
+  { bulan: "Apr", target: 13.03, realisasi: 13.03 },
+  { bulan: "Mei", target: 13.18, realisasi: 13.18 },
+  { bulan: "Jun", target: 19.5, realisasi: 23.35 },
+  { bulan: "Jul", target: 21.88, realisasi: 28.49 },
+];
 
-  kpiGrid.querySelectorAll('input').forEach(inp => {
-    inp.addEventListener('input', e => {
-      const kpiId = parseInt(e.target.dataset.kpi);
-      const field = e.target.dataset.field;
-      const val = parseFloat(e.target.value) || 0;
-      const k = kpis.find(x=>x.id===kpiId);
-      if(e.target.dataset.sub !== undefined){
-        k.subs[parseInt(e.target.dataset.sub)][field] = val;
-      } else {
-        k[field] = val;
-      }
-      renderAll();
-    });
-  });
-}
+const indikator = [
+  { kategori: "A", nama: "Pendapatan service fee", satuan: "Rp Miliar", bobot: 10, target: "379,42", realisasi: "398,56", pct: 105.0 },
+  { kategori: "A", nama: "Pengendalian anggaran operasi", satuan: "% penyerapan", bobot: 10, target: "58,0", realisasi: "15,2", pct: 110.0 },
+  { kategori: "A", nama: "Pendapatan inovatif", satuan: "Rp Miliar", bobot: 10, target: "3.268,0", realisasi: "4.056,7", pct: 110.0 },
+  { kategori: "A", nama: "Efisiensi pengelolaan energi primer", satuan: "Rp Miliar", bobot: 10, target: "21,88", realisasi: "28,49", pct: 130.2 },
+  { kategori: "B", nama: "Pasokan batubara — tambang sendiri & afiliasi", satuan: "Ribu MT", bobot: 4, target: "467,5", realisasi: "541,6", pct: 110.0 },
+  { kategori: "B", nama: "Pasokan batubara — ke Coal Blending Facility", satuan: "Ribu MT", bobot: 4, target: "350,0", realisasi: "359,5", pct: 102.7 },
+  { kategori: "B", nama: "Pasokan batubara — ke Intermediate Stockpile", satuan: "Ribu MT", bobot: 4, target: "910,0", realisasi: "991,0", pct: 108.9 },
+  { kategori: "B", nama: "Implementasi platform ICO tahap I", satuan: "Waktu", bobot: 8, target: "Go live 30 Jun 2026", realisasi: "Selesai", pct: 110.0 },
+  { kategori: "B", nama: "Milestone kewajiban tambang ke negara", satuan: "%", bobot: 15, target: "100", realisasi: "100", pct: 110.0 },
+  { kategori: "B", nama: "Feasibility study & AMDAL", satuan: "%", bobot: 8, target: "100", realisasi: "100", pct: 100.0 },
+  { kategori: "B", nama: "Kajian program pengembangan batubara", satuan: "Dokumen", bobot: 7, target: "100", realisasi: "100", pct: 100.0 },
+  { kategori: "B", nama: "Good Corporate Governance (GCG)", satuan: "%", bobot: 2, target: "100", realisasi: "100", pct: 100.0 },
+  { kategori: "B", nama: "Roadmap manajemen risiko", satuan: "%", bobot: 2, target: "100", realisasi: "100,6", pct: 100.6 },
+  { kategori: "B", nama: "Maturity level kepatuhan", satuan: "Level", bobot: 2, target: "4,4", realisasi: "4,56", pct: 106.0 },
+  { kategori: "B", nama: "Ketepatan waktu & akurasi laporan", satuan: "%", bobot: 4, target: "100", realisasi: "100", pct: 100.0 },
+];
 
-// ---------- MONTHLY TREND DATA (dari file Excel yang diunggah, kumulatif Jan-Jun 2026) ----------
-const monthlyTrend = {
-  kpi1: { label:'1. Pendapatan Service Fee (Rp Miliar)',
-    target:[49.26,98.52,147.77,197.03,246.29,295.55],
-    real:[42.94,94.68,146.71,202.49,261.05,332.11] },
-  kpi2: { label:'2. Pengendalian Anggaran Operasi (%)',
-    target:[8,17,25,33,42,50],
-    real:[2.73,3.31,4.39,4.69,5.01,9.33] },
-  kpi3: { label:'3. Pendapatan Inovatif (Rp Miliar)',
-    target:[190,821.46,1097.08,1712.92,2178.65,2414.4],
-    real:[192.31,681.11,1099.65,1743.55,2557.76,2972.04] },
-  kpi4: { label:'4. Efisiensi Pengelolaan Energi Primer (Rp Miliar)',
-    target:[0.09,6.42,9.63,13.03,13.18,19.5],
-    real:[0.09,9.83,10.88,13.03,13.18,23.35] },
-  kpi5a: { label:'5a. Pasokan Batubara - Tambang Sendiri & Afiliasi (Ribu MT)',
-    target:[52.5,97.5,142.5,187.5,257.5,327.5],
-    real:[70.50,172.65,297.82,377.88,427.92,480.18] },
-  kpi5b: { label:'5b. Pasokan Batubara - Coal Blending Facility (Ribu MT)',
-    target:[30,80,100,125,200,270],
-    real:[70,125,125,170,240,290] },
-  kpi5c: { label:'5c. Pasokan Batubara - Intermediate Stockpile (Ribu MT)',
-    target:[90,90,235,500,610,780],
-    real:[101.29,238.83,388.90,550.48,701.35,842.04] },
-  kpi6: { label:'6. Implementasi Platform ICO Tahap I (%)',
-    target:[0,0,0,0,0,100],
-    real:[0,0,100,100,100,110] },
-  kpi7: { label:'7. Milestone Kewajiban Tambang ke Negara (%)',
-    target:[100,100,100,100,100,100],
-    real:[100,100,100,100,100,100] },
-  kpi8: { label:'8. Pemenuhan Dokumen Penunjang Proses Bisnis (%)',
-    target:[0,0,0,0,0,100],
-    real:[0,0,0,0,0,100] },
+/* Detail bulanan per indikator: target, realisasi, capaian (%) — Jan s.d. Jul 2026 */
+const monthlyDetail = {
+  "Pendapatan service fee": {
+    satuan: "Rp Miliar (kumulatif)",
+    rows: [
+      { bulan: "Jan", target: "49,26", realisasi: "42,94", pct: 87.2 },
+      { bulan: "Feb", target: "98,52", realisasi: "94,68", pct: 96.1 },
+      { bulan: "Mar", target: "147,77", realisasi: "146,71", pct: 99.3 },
+      { bulan: "Apr", target: "197,03", realisasi: "202,49", pct: 102.8 },
+      { bulan: "Mei", target: "246,29", realisasi: "261,05", pct: 106.0 },
+      { bulan: "Jun", target: "295,55", realisasi: "332,11", pct: 112.4 },
+      { bulan: "Jul", target: "379,42", realisasi: "398,56", pct: 105.0 },
+    ],
+  },
+  "Pengendalian anggaran operasi": {
+    satuan: "% penyerapan (kumulatif) — makin rendah makin baik",
+    rows: [
+      { bulan: "Jan", target: "8,0", realisasi: "2,7", pct: 110.0 },
+      { bulan: "Feb", target: "17,0", realisasi: "3,3", pct: 110.0 },
+      { bulan: "Mar", target: "25,0", realisasi: "4,4", pct: 110.0 },
+      { bulan: "Apr", target: "33,0", realisasi: "5,0", pct: 110.0 },
+      { bulan: "Mei", target: "42,0", realisasi: "5,3", pct: 110.0 },
+      { bulan: "Jun", target: "50,0", realisasi: "11,0", pct: 177.9 },
+      { bulan: "Jul", target: "58,0", realisasi: "15,2", pct: 110.0 },
+    ],
+  },
+  "Pendapatan inovatif": {
+    satuan: "Rp Miliar (kumulatif)",
+    rows: [
+      { bulan: "Jan", target: "190,00", realisasi: "192,31", pct: 101.2 },
+      { bulan: "Feb", target: "821,46", realisasi: "681,11", pct: 100.0 },
+      { bulan: "Mar", target: "1.097,08", realisasi: "1.099,65", pct: 100.0 },
+      { bulan: "Apr", target: "1.712,92", realisasi: "1.743,55", pct: 101.8 },
+      { bulan: "Mei", target: "2.178,65", realisasi: "2.557,76", pct: 117.4 },
+      { bulan: "Jun", target: "2.414,40", realisasi: "2.972,04", pct: 123.1 },
+      { bulan: "Jul", target: "3.268,00", realisasi: "4.056,68", pct: 110.0 },
+    ],
+  },
+  "Efisiensi pengelolaan energi primer": {
+    satuan: "Rp Miliar (kumulatif)",
+    rows: [
+      { bulan: "Jan", target: "0,09", realisasi: "0,09", pct: 100.9 },
+      { bulan: "Feb", target: "6,42", realisasi: "9,83", pct: 153.1 },
+      { bulan: "Mar", target: "9,63", realisasi: "10,88", pct: 110.0 },
+      { bulan: "Apr", target: "13,03", realisasi: "13,03", pct: 100.0 },
+      { bulan: "Mei", target: "13,18", realisasi: "13,18", pct: 100.0 },
+      { bulan: "Jun", target: "19,50", realisasi: "23,35", pct: 119.7 },
+      { bulan: "Jul", target: "21,88", realisasi: "28,49", pct: 130.2 },
+    ],
+  },
+  "Pasokan batubara — tambang sendiri & afiliasi": {
+    satuan: "Ribu MT (kumulatif)",
+    rows: [
+      { bulan: "Jan", target: "52,5", realisasi: "70,5", pct: 134.3 },
+      { bulan: "Feb", target: "97,5", realisasi: "172,7", pct: 177.1 },
+      { bulan: "Mar", target: "142,5", realisasi: "297,8", pct: 209.0 },
+      { bulan: "Apr", target: "187,5", realisasi: "377,8", pct: 201.5 },
+      { bulan: "Mei", target: "257,5", realisasi: "427,8", pct: 166.2 },
+      { bulan: "Jun", target: "327,5", realisasi: "488,1", pct: 149.0 },
+      { bulan: "Jul", target: "467,5", realisasi: "541,6", pct: 110.0 },
+    ],
+  },
+  "Pasokan batubara — ke Coal Blending Facility": {
+    satuan: "Ribu MT (kumulatif)",
+    rows: [
+      { bulan: "Jan", target: "30,0", realisasi: "70,0", pct: 233.3 },
+      { bulan: "Feb", target: "80,0", realisasi: "125,0", pct: 156.3 },
+      { bulan: "Mar", target: "100,0", realisasi: "125,0", pct: 125.0 },
+      { bulan: "Apr", target: "125,0", realisasi: "170,0", pct: 136.0 },
+      { bulan: "Mei", target: "200,0", realisasi: "240,0", pct: 120.0 },
+      { bulan: "Jun", target: "270,0", realisasi: "290,0", pct: 107.4 },
+      { bulan: "Jul", target: "350,0", realisasi: "359,5", pct: 102.7 },
+    ],
+  },
+  "Pasokan batubara — ke Intermediate Stockpile": {
+    satuan: "Ribu MT (kumulatif)",
+    rows: [
+      { bulan: "Jan", target: "90,0", realisasi: "101,3", pct: 112.5 },
+      { bulan: "Feb", target: "90,0", realisasi: "238,8", pct: 101.6 },
+      { bulan: "Mar", target: "235,0", realisasi: "388,9", pct: 99.7 },
+      { bulan: "Apr", target: "500,0", realisasi: "550,5", pct: 110.1 },
+      { bulan: "Mei", target: "610,0", realisasi: "701,4", pct: 115.0 },
+      { bulan: "Jun", target: "780,0", realisasi: "842,1", pct: 108.0 },
+      { bulan: "Jul", target: "910,0", realisasi: "991,0", pct: 108.9 },
+    ],
+  },
+  "Implementasi platform ICO tahap I": {
+    satuan: "Status penyelesaian",
+    rows: [
+      { bulan: "Jan", target: "—", realisasi: "Belum dimulai", pct: null },
+      { bulan: "Feb", target: "—", realisasi: "Belum dimulai", pct: null },
+      { bulan: "Mar", target: "—", realisasi: "Belum dimulai", pct: null },
+      { bulan: "Apr", target: "—", realisasi: "Belum dimulai", pct: null },
+      { bulan: "Mei", target: "—", realisasi: "Belum dimulai", pct: null },
+      { bulan: "Jun", target: "Go live 30 Jun 2026", realisasi: "Selesai (go live)", pct: 110.0 },
+      { bulan: "Jul", target: "—", realisasi: "Selesai", pct: 110.0 },
+    ],
+  },
+  "Milestone kewajiban tambang ke negara": {
+    satuan: "% (tidak kena sanksi penghentian operasi)",
+    rows: [
+      { bulan: "Jan", target: "100", realisasi: "Tidak ada sanksi", pct: 100.0 },
+      { bulan: "Feb", target: "100", realisasi: "Tidak ada sanksi", pct: 100.0 },
+      { bulan: "Mar", target: "100", realisasi: "Tidak ada sanksi", pct: 100.0 },
+      { bulan: "Apr", target: "100", realisasi: "Tidak ada sanksi", pct: 100.0 },
+      { bulan: "Mei", target: "100", realisasi: "Tidak ada sanksi", pct: 100.0 },
+      { bulan: "Jun", target: "100", realisasi: "100", pct: 100.0 },
+      { bulan: "Jul", target: "100", realisasi: "110", pct: 110.0 },
+    ],
+  },
+  "Feasibility study & AMDAL": {
+    satuan: "% penyelesaian",
+    rows: [
+      { bulan: "Jan", target: "—", realisasi: "Belum jatuh tempo", pct: null },
+      { bulan: "Feb", target: "—", realisasi: "Belum jatuh tempo", pct: null },
+      { bulan: "Mar", target: "—", realisasi: "Belum jatuh tempo", pct: null },
+      { bulan: "Apr", target: "—", realisasi: "Belum jatuh tempo", pct: null },
+      { bulan: "Mei", target: "—", realisasi: "Belum jatuh tempo", pct: null },
+      { bulan: "Jun", target: "100", realisasi: "100", pct: 100.0 },
+      { bulan: "Jul", target: "100", realisasi: "100", pct: 100.0 },
+    ],
+  },
+  "Kajian program pengembangan batubara": {
+    satuan: "Dokumen",
+    rows: [
+      { bulan: "Jan", target: "0", realisasi: "0", pct: null },
+      { bulan: "Feb", target: "—", realisasi: "—", pct: null },
+      { bulan: "Mar", target: "—", realisasi: "—", pct: null },
+      { bulan: "Apr", target: "—", realisasi: "—", pct: null },
+      { bulan: "Mei", target: "—", realisasi: "—", pct: null },
+      { bulan: "Jun", target: "100", realisasi: "100", pct: 100.0 },
+      { bulan: "Jul", target: "100", realisasi: "100", pct: 100.0 },
+    ],
+  },
+  "Good Corporate Governance (GCG)": {
+    satuan: "% penyelesaian program kerja",
+    rows: [
+      { bulan: "Jan", target: "100", realisasi: "0", pct: 0 },
+      { bulan: "Feb", target: "100", realisasi: "0", pct: 0 },
+      { bulan: "Mar", target: "100", realisasi: "0", pct: 0 },
+      { bulan: "Apr", target: "100", realisasi: "0", pct: 0 },
+      { bulan: "Mei", target: "100", realisasi: "—", pct: null },
+      { bulan: "Jun", target: "100", realisasi: "100", pct: 100.0 },
+      { bulan: "Jul", target: "100", realisasi: "100", pct: 100.0 },
+    ],
+  },
+  "Roadmap manajemen risiko": {
+    satuan: "% realisasi program",
+    rows: [
+      { bulan: "Jan", target: "100", realisasi: "100", pct: 100.0 },
+      { bulan: "Feb", target: "100", realisasi: "100", pct: 100.0 },
+      { bulan: "Mar", target: "100", realisasi: "100", pct: 100.0 },
+      { bulan: "Apr", target: "100", realisasi: "100", pct: 100.0 },
+      { bulan: "Mei", target: "100", realisasi: "100", pct: 100.0 },
+      { bulan: "Jun", target: "100", realisasi: "100", pct: 100.0 },
+      { bulan: "Jul", target: "100", realisasi: "100,6", pct: 100.6 },
+    ],
+  },
+  "Maturity level kepatuhan": {
+    satuan: "Level (skala kematangan)",
+    rows: [
+      { bulan: "Jan", target: "—", realisasi: "0", pct: 0 },
+      { bulan: "Feb", target: "—", realisasi: "0", pct: 0 },
+      { bulan: "Mar", target: "—", realisasi: "0", pct: 0 },
+      { bulan: "Apr", target: "—", realisasi: "0", pct: 0 },
+      { bulan: "Mei", target: "—", realisasi: "—", pct: null },
+      { bulan: "Jun", target: "4,3", realisasi: "4,56", pct: 106.0 },
+      { bulan: "Jul", target: "—", realisasi: "4,56", pct: 106.0 },
+    ],
+  },
+  "Ketepatan waktu & akurasi laporan": {
+    satuan: "% ketepatan waktu",
+    rows: [
+      { bulan: "Jan", target: "100", realisasi: "100", pct: 100.0 },
+      { bulan: "Feb", target: "100", realisasi: "100", pct: 100.0 },
+      { bulan: "Mar", target: "100", realisasi: "110", pct: 110.0 },
+      { bulan: "Apr", target: "100", realisasi: "110", pct: 110.0 },
+      { bulan: "Mei", target: "100", realisasi: "110", pct: 110.0 },
+      { bulan: "Jun", target: "100", realisasi: "100", pct: 100.0 },
+      { bulan: "Jul", target: "100", realisasi: "100", pct: 100.0 },
+    ],
+  },
 };
-const trendMonthLabels = ['Jan','Feb','Mar','Apr','Mei','Jun'];
 
-const trendCharts = {};
-function buildAllTrendCharts(){
-  const grid = document.getElementById('trendChartsGrid');
-  Object.keys(monthlyTrend).forEach(key => {
-    let panel = document.getElementById('panel-'+key);
-    if(!panel){
-      panel = document.createElement('div');
-      panel.className = 'panel';
-      panel.id = 'panel-'+key;
-      panel.innerHTML = `<h4>${monthlyTrend[key].label}</h4>
-        <div class="sub">Target vs Realisasi bulanan (Jan–Jun 2026)</div>
-        <canvas id="chart-${key}" height="220"></canvas>`;
-      grid.appendChild(panel);
-    }
-    const series = monthlyTrend[key];
-    const ctx = document.getElementById('chart-'+key);
-    if(trendCharts[key]) trendCharts[key].destroy();
-    trendCharts[key] = new Chart(ctx, {
-      type:'line',
-      data:{ labels: trendMonthLabels, datasets:[
-        {label:'Target', data:series.target, borderColor:COLORS.gray, backgroundColor:COLORS.gray, borderWidth:2, tension:0.3, pointRadius:4},
-        {label:'Realisasi', data:series.real, borderColor:COLORS.blue, backgroundColor:COLORS.blue, borderWidth:2, tension:0.3, pointRadius:4},
-      ]},
-      options:{ responsive:true, plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:11}}}},
-        scales:{ x:{grid:{display:false}}, y:{grid:{color:'#EEF1F4'}} } }
-    });
-  });
+const komposisiB = [
+  { nama: "Pasokan batubara", nilai: 12, color: "#7A2E1E" },
+  { nama: "Platform ICO", nilai: 8, color: "#C1502E" },
+  { nama: "Milestone tambang", nilai: 15, color: "#E28B5D" },
+  { nama: "Dokumen penunjang", nilai: 15, color: "#F2C4A6" },
+  { nama: "Tata kelola & kepatuhan", nilai: 10, color: "#F8DEC7" },
+];
+
+const komposisiA = [
+  { nama: "Service fee", nilai: 10, color: "#4B4B4B" },
+  { nama: "Anggaran operasi", nilai: 10, color: "#7A7A7A" },
+  { nama: "Pendapatan inovatif", nilai: 10, color: "#A6A6A6" },
+  { nama: "Efisiensi energi primer", nilai: 10, color: "#D0D0D0" },
+];
+
+function statusColor(pct) {
+  if (pct >= 105) return { fg: "#0F6E56", bg: "#E1F5EE" };
+  if (pct >= 100) return { fg: "#854F0B", bg: "#FAEEDA" };
+  return { fg: "#993C1D", bg: "#FAECE7" };
 }
 
-// ---------- SUMMARY TABLE ----------
-function renderSummary(){
-  const rows = [];
-  kpis.forEach(k=>{
-    if(k.mode === 'subs'){
-      const t = k.subs.reduce((s,x)=>s+x.target,0);
-      const r = k.subs.reduce((s,x)=>s+x.real,0);
-      const p = k.subs.reduce((s,x)=>s+pct(x.target,x.real),0)/k.subs.length;
-      rows.push({name:k.name, target:t.toFixed(1), real:r.toFixed(1), p});
-    } else {
-      const p = pct(k.target,k.real,k.polarity);
-      rows.push({name:k.name, target:k.target, real:k.real, p});
-    }
-  });
-  document.getElementById('summaryBody').innerHTML = rows.map(r=>`
-    <tr>
-      <td>${r.name}</td>
-      <td>${r.target}</td>
-      <td>${r.real}</td>
-      <td>${r.p.toFixed(1)}%</td>
-      <td><span class="status-chip"><span class="dot" style="background:${statusColor(r.p)}"></span>${r.p>=100?'On Target':(r.p>=90?'Warning':'Below Target')}</span></td>
-    </tr>
-  `).join('');
-  return rows;
+function MetricBlock({ icon: Icon, label, value, sub, color }) {
+  return (
+    <div
+      style={{
+        background: color,
+        borderRadius: 6,
+        padding: "16px 12px 14px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        textAlign: "center",
+        gap: 8,
+        minWidth: 0,
+      }}
+    >
+      <span style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: 0.6, color: "rgba(255,255,255,0.85)" }}>
+        {label.toUpperCase()}
+      </span>
+      <Icon size={26} color="#FFFFFF" strokeWidth={1.4} />
+      <span
+        style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 17,
+          fontWeight: 600,
+          color: "#fff",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {value}
+      </span>
+      <span style={{ fontSize: 10.5, color: "rgba(255,255,255,0.75)" }}>{sub}</span>
+    </div>
+  );
 }
 
-// ---------- MASTER RENDER ----------
-function renderAll(){
-  renderKpiCards();
-  buildAllTrendCharts();
-  renderSummary();
+function TrendCard({ title, data, unit }) {
+  return (
+    <div style={{ background: "#fff", border: `1px solid ${border}`, borderRadius: 8, padding: "16px 18px" }}>
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: ink, letterSpacing: 0.3, marginBottom: 2 }}>
+        {title.toUpperCase()}
+      </div>
+      <div style={{ fontSize: 11, color: inkSoft, marginBottom: 10 }}>kumulatif, {unit} — Jan s.d. Jul 2026</div>
+      <div style={{ height: 160 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
+            <CartesianGrid stroke={border} vertical={false} />
+            <XAxis dataKey="bulan" tick={{ fontSize: 10, fill: inkSoft }} axisLine={{ stroke: border }} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: inkSoft }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ borderRadius: 8, border: `1px solid ${border}`, fontSize: 11 }} />
+            <Line type="monotone" dataKey="target" name="Target" stroke="#B4AFA0" strokeWidth={2} strokeDasharray="4 3" dot={false} />
+            <Line type="monotone" dataKey="realisasi" name="Realisasi" stroke="#2F6F4E" strokeWidth={2} dot={{ r: 3, fill: "#2F6F4E" }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div style={{ display: "flex", gap: 14, marginTop: 4, fontSize: 10.5, color: inkSoft }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ width: 14, height: 2, background: "#B4AFA0" }} /> target
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ width: 14, height: 2, background: "#2F6F4E" }} /> realisasi
+        </span>
+      </div>
+    </div>
+  );
 }
 
-renderAll();
-</script>
-</body>
-</html>
+function DonutCard({ title, data }) {
+  return (
+    <div style={{ background: "#fff", border: `1px solid ${border}`, borderRadius: 8, padding: "16px 18px" }}>
+      <div style={{ fontSize: 12.5, fontWeight: 600, color: ink, letterSpacing: 0.3, marginBottom: 10 }}>
+        {title.toUpperCase()}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 120, height: 120, flexShrink: 0 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={data} dataKey="nilai" nameKey="nama" innerRadius={32} outerRadius={58} paddingAngle={1} stroke="none">
+                {data.map((d, i) => (
+                  <Cell key={i} fill={d.color} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={{ borderRadius: 8, border: `1px solid ${border}`, fontSize: 12 }} formatter={(v, n) => [`bobot ${v}`, n]} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginLeft: 12, justifyContent: "center" }}>
+          {data.map((it) => (
+            <div key={it.nama} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: inkSoft }}>
+              <span style={{ width: 9, height: 9, background: it.color, borderRadius: 2, flexShrink: 0 }} />
+              {it.nama} ({it.nilai})
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MonthlyDetailCard() {
+  const namaIndikator = Object.keys(monthlyDetail);
+  const [pilihan, setPilihan] = useState(namaIndikator[0]);
+  const detail = monthlyDetail[pilihan];
+  const chartData = detail.rows.map((r) => ({ bulan: r.bulan, pct: r.pct }));
+
+  return (
+    <div style={{ background: "#fff", border: `1px solid ${border}`, borderRadius: 8, padding: "16px 18px", marginBottom: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4, flexWrap: "wrap", gap: 8 }}>
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: ink, letterSpacing: 0.3 }}>
+          PENCAPAIAN BULANAN PER INDIKATOR
+        </div>
+        <select
+          value={pilihan}
+          onChange={(e) => setPilihan(e.target.value)}
+          style={{
+            border: `1px solid ${border}`,
+            borderRadius: 6,
+            padding: "6px 10px",
+            fontSize: 12.5,
+            color: ink,
+            background: "#fff",
+            maxWidth: 340,
+          }}
+        >
+          {namaIndikator.map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div style={{ fontSize: 11, color: inkSoft, marginBottom: 14 }}>{detail.satuan}</div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr", gap: 18 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+          <thead>
+            <tr style={{ color: inkSoft, textAlign: "left" }}>
+              <th style={{ fontWeight: 500, padding: "0 8px 8px 0" }}>Bulan</th>
+              <th style={{ fontWeight: 500, padding: "0 8px 8px 0", textAlign: "right" }}>Target</th>
+              <th style={{ fontWeight: 500, padding: "0 8px 8px 0", textAlign: "right" }}>Realisasi</th>
+              <th style={{ fontWeight: 500, padding: "0 0 8px 0", textAlign: "right" }}>Capaian</th>
+            </tr>
+          </thead>
+          <tbody>
+            {detail.rows.map((r) => {
+              const sc = r.pct === null ? { fg: inkSoft, bg: "#F4F2EC" } : statusColor(r.pct);
+              return (
+                <tr key={r.bulan} style={{ borderTop: `1px solid ${border}` }}>
+                  <td style={{ padding: "7px 8px 7px 0", fontWeight: 500 }}>{r.bulan}</td>
+                  <td style={{ padding: "7px 8px 7px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{r.target}</td>
+                  <td style={{ padding: "7px 8px 7px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{r.realisasi}</td>
+                  <td style={{ padding: "7px 0", textAlign: "right" }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        padding: "2px 8px",
+                        borderRadius: 5,
+                        color: sc.fg,
+                        background: sc.bg,
+                        fontFamily: "'JetBrains Mono', monospace",
+                      }}
+                    >
+                      {r.pct === null ? "—" : `${r.pct.toFixed(1)}%`}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        <div>
+          <div style={{ fontSize: 11, color: inkSoft, marginBottom: 8 }}>Tren capaian (%) per bulan</div>
+          <div style={{ height: 200 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+                <CartesianGrid stroke={border} vertical={false} />
+                <XAxis dataKey="bulan" tick={{ fontSize: 10, fill: inkSoft }} axisLine={{ stroke: border }} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: inkSoft }} axisLine={false} tickLine={false} unit="%" />
+                <Tooltip contentStyle={{ borderRadius: 8, border: `1px solid ${border}`, fontSize: 11 }} formatter={(v) => [`${v}%`, "Capaian"]} />
+                <Line type="monotone" dataKey="pct" stroke="#2F6F4E" strokeWidth={2} dot={{ r: 3, fill: "#2F6F4E" }} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  const [kategori, setKategori] = useState("Semua");
+  const filtered = indikator.filter((d) => kategori === "Semua" || d.kategori === kategori);
+
+  return (
+    <div style={{ background: "#EFEDE6", minHeight: "100vh", fontFamily: "'Inter', sans-serif", padding: "24px 22px 50px" }}>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap"
+      />
+
+      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 11.5, letterSpacing: 1.2, color: inkSoft, marginBottom: 4 }}>
+            PT PLN ENERGI PRIMER INDONESIA — SVP PENGEMBANGAN USAHA BATUBARA
+          </div>
+          <h1
+            style={{
+              fontFamily: "'Fraunces', serif",
+              fontWeight: 700,
+              fontSize: 25,
+              margin: 0,
+              color: "#3B4A9E",
+            }}
+          >
+            REALISASI KONTRAK MANAJEMEN 2026 — S.D. JULI
+          </h1>
+        </div>
+
+        {/* Metric blocks */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 4, marginBottom: 22 }}>
+          {metricBlocks.map((m) => (
+            <MetricBlock key={m.label} {...m} />
+          ))}
+        </div>
+
+        {/* Trend charts */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 14 }}>
+          <TrendCard title="Pendapatan service fee" data={serviceFee} unit="Rp Miliar" />
+          <TrendCard title="Pendapatan inovatif" data={pendapatanInovatif} unit="Rp Miliar" />
+          <TrendCard title="Efisiensi energi primer" data={efisiensiEnergi} unit="Rp Miliar" />
+        </div>
+
+        {/* Donut composition */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <DonutCard title="Komposisi bobot kategori KPI (A · total 40)" data={komposisiA} />
+          <DonutCard title="Komposisi bobot performance indicators (B · total 60)" data={komposisiB} />
+        </div>
+
+        {/* Detail bulanan per indikator */}
+        <MonthlyDetailCard />
+
+        {/* Table */}
+        <div style={{ background: "#fff", border: `1px solid ${border}`, borderRadius: 8, padding: "16px 18px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: ink, letterSpacing: 0.3 }}>
+              RINCIAN INDIKATOR KINERJA — REALISASI S.D. JULI 2026
+            </div>
+            <div style={{ display: "flex", gap: 6, background: "#F4F2EC", borderRadius: 8, padding: 4 }}>
+              {["Semua", "A", "B"].map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setKategori(k)}
+                  style={{
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "5px 12px",
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 500,
+                    background: kategori === k ? ink : "transparent",
+                    color: kategori === k ? "#fff" : inkSoft,
+                  }}
+                >
+                  {k === "Semua" ? "Semua" : `Kategori ${k}`}
+                </button>
+              ))}
+            </div>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <thead>
+              <tr style={{ color: inkSoft, textAlign: "left" }}>
+                <th style={{ fontWeight: 500, padding: "0 8px 8px 0" }}>Indikator</th>
+                <th style={{ fontWeight: 500, padding: "0 8px 8px 0" }}>Satuan</th>
+                <th style={{ fontWeight: 500, padding: "0 8px 8px 0", textAlign: "right" }}>Bobot</th>
+                <th style={{ fontWeight: 500, padding: "0 8px 8px 0", textAlign: "right" }}>Target</th>
+                <th style={{ fontWeight: 500, padding: "0 8px 8px 0", textAlign: "right" }}>Realisasi</th>
+                <th style={{ fontWeight: 500, padding: "0 0 8px 0", textAlign: "right" }}>Capaian</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((d, i) => {
+                const sc = statusColor(d.pct);
+                return (
+                  <tr key={i} style={{ borderTop: `1px solid ${border}` }}>
+                    <td style={{ padding: "8px 8px 8px 0" }}>{d.nama}</td>
+                    <td style={{ padding: "8px 8px 8px 0", color: inkSoft }}>{d.satuan}</td>
+                    <td style={{ padding: "8px 8px 8px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{d.bobot}</td>
+                    <td style={{ padding: "8px 8px 8px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{d.target}</td>
+                    <td style={{ padding: "8px 8px 8px 0", textAlign: "right", fontFamily: "'JetBrains Mono', monospace" }}>{d.realisasi}</td>
+                    <td style={{ padding: "8px 0", textAlign: "right" }}>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: "2px 8px",
+                          borderRadius: 5,
+                          color: sc.fg,
+                          background: sc.bg,
+                          fontFamily: "'JetBrains Mono', monospace",
+                        }}
+                      >
+                        {d.pct.toFixed(1)}%
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ marginTop: 18, fontSize: 11, color: inkSoft, textAlign: "center" }}>
+          Sumber: berkas "REALISASI USULAN KONTRAK MANAJEMEN TAHUN 2026" — realisasi s.d. Juli 2026, Jakarta 5 Agustus 2026.
+          Catatan: pada indikator Pengendalian Anggaran Operasi, capaian dihitung berdasarkan efisiensi penyerapan anggaran (penyerapan rendah = capaian tinggi).
+        </div>
+      </div>
+    </div>
+  );
+}
